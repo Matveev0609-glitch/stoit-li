@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>СТОИТ ЛИ?</title>
+
+<style>
+:root{
+--bg:#f5f7fb;
+--card:#fff;
+--text:#111827;
+--muted:#6b7280;
+--line:#e5e7eb;
+--accent:#111827;
+--good:#15803d;
+--bad:#b91c1c
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+}
+
+button,input,select,textarea{
+font:inherit
+}
+
+.app{
+max-width:720px;
+margin:auto;
+padding:16px 14px 96px
+}
+
+.logo{
+font-size:25px;
+font-weight:800;
+letter-spacing:-.5px;
+margin:6px 0 18px
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--line);
+border-radius:18px;
+padding:16px;
+margin:12px 0;
+box-shadow:0 3px 14px #1118270a
+}
+
+h1{
+font-size:28px;
+margin:8px 0
+}
+
+h2{
+font-size:19px;
+margin:8px 0 14px
+}
+
+h3{
+font-size:15px;
+margin:0 0 8px
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px
+}
+
+.cat{
+padding:14px;
+border:1px solid var(--line);
+border-radius:14px;
+background:#fff
+}
+
+.rating-row{
+padding:12px 0;
+border-bottom:1px solid var(--line)
+}
+
+.rating-row:last-child{
+border-bottom:0
+}
+
+.person{
+margin-top:12px
+}
+
+.person-title{
+font-size:13px;
+font-weight:700;
+margin-bottom:7px
+}
+
+.scores{
+display:grid;
+grid-template-columns:repeat(6,1fr);
+gap:6px
+}
+
+.scores button{
+padding:9px 3px;
+border:1px solid var(--line);
+background:#fff;
+border-radius:10px;
+cursor:pointer
+}
+
+.scores button.active{
+background:#111827;
+color:#fff
+}
+
+.actions{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#fff;
+border-top:1px solid var(--line);
+padding:10px max(14px,calc((100vw - 720px)/2 + 14px));
+display:flex;
+gap:8px;
+z-index:5
+}
+
+.btn{
+border:0;
+border-radius:12px;
+padding:12px 15px;
+background:#111827;
+color:#fff;
+font-weight:700
+}
+
+.btn.secondary{
+background:#fff;
+color:#111827;
+border:1px solid var(--line)
+}
+
+.btn.danger{
+background:#fff;
+color:var(--bad);
+border:1px solid #fecaca
+}
+
+.btn:disabled{
+opacity:.45
+}
+
+input,select,textarea{
+width:100%;
+padding:12px;
+border:1px solid var(--line);
+border-radius:12px;
+background:#fff;
+color:var(--text)
+}
+
+label{
+display:block;
+font-size:13px;
+font-weight:700;
+margin:12px 0 6px
+}
+
+.result{
+text-align:center
+}
+
+.big{
+font-size:48px;
+font-weight:850;
+line-height:1
+}
+
+.muted{
+color:var(--muted)
+}
+
+.list-item{
+display:flex;
+justify-content:space-between;
+gap:10px;
+align-items:center;
+padding:12px 0;
+border-bottom:1px solid var(--line)
+}
+
+.empty{
+text-align:center;
+padding:35px 10px;
+color:var(--muted)
+}
+
+.nav{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin:8px 0 14px
+}
+
+.nav button{
+padding:11px 8px;
+border:1px solid var(--line);
+background:#fff;
+border-radius:12px
+}
+
+.nav button.active{
+background:#111827;
+color:#fff
+}
+
+.pill{
+display:inline-block;
+padding:5px 9px;
+border-radius:999px;
+background:#f0fdf4;
+color:#166534;
+font-size:12px;
+font-weight:700
+}
+
+@media(max-width:390px){
+.scores button{
+font-size:12px;
+padding:8px 1px
+}
+
+.grid{
+grid-template-columns:1fr
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app" id="app"></div>
+<div class="actions" id="actions"></div>
+
+<script>
+
+const KEY="stoitli_v1";
+
+const PEOPLE=[
+"Я",
+"Жена",
+"Сын"
+];
+
+const CATS={
+
+"Страна":[
+["Люди / гостеприимство",15],
+["Красота и уют",15],
+["Цены",10],
+["Чистота",10],
+["Природа / зелень",10],
+["Животные / фауна",10]
+],
+
+"Пляж":[
+["Вода — прозрачность",12],
+["Вода — чистота",12],
+["Вода — температура",10],
+["Волны / спокойствие",8],
+["Чистота пляжа",10],
+["Цены",8],
+["Люди / гостеприимство",8],
+["Красота и уют",10],
+["Природа / зелень",6],
+["Животные в воде",6]
+],
+
+"Отель":[
+["Расположение",12],
+["Цена / качество",12],
+["Чистота",10],
+["Номер",10],
+["Завтрак / еда",8],
+["Бассейн",6],
+["Сервис",10],
+["Тишина",8],
+["Красота",8],
+["Удобство для семьи",6]
+]
+
+};
+
+let data=JSON.parse(
+localStorage.getItem(KEY)||"[]"
+);
+
+let screen="home";
+let draft=null;
+
+function save(){
+localStorage.setItem(
+KEY,
+JSON.stringify(data)
+);
+}
+
+function avg(o){
+
+let a=Object.values(o||{})
+.filter(v=>typeof v==="number");
+
+return a.length
+?a.reduce((x,y)=>x+y,0)/a.length
+:null;
+
+}
+
+function calc(item){
+
+let total=0;
+let w=0;
+
+(CATS[item.type]||[]).forEach(([name,weight])=>{
+
+let vals=PEOPLE
+.map(p=>item.ratings?.[p]?.[name])
+.filter(v=>Number.isFinite(v));
+
+if(vals.length){
+
+let personAvg=
+vals.reduce((a,b)=>a+b,0)/vals.length;
+
+total+=personAvg*weight;
+w+=weight;
+
+}
+
+});
+
+return w?total/w:null;
+
+}
+
+function verdict(x){
+
+if(x==null)
+return["",""];
+
+if(x>=8.5)
+return["ДА","Очень сильный вариант"];
+
+if(x>=7)
+return["СКОРЕЕ ДА","Хороший вариант"];
+
+if(x>=5.5)
+return["50/50","Есть заметные минусы"];
+
+return["НЕТ","Мы бы не повторяли"];
+
+}
+
+function go(s){
+
+screen=s;
+
+render();
+
+history.pushState(
+{screen:s},
+"",
+"#"+s
+);
+
+}
+
+function render(){
+
+const app=document.getElementById("app");
+const actions=document.getElementById("actions");
+
+if(screen==="home")
+renderHome(app);
+
+else if(screen==="form")
+renderForm(app);
+
+else if(screen==="stats")
+renderStats(app);
+
+else
+renderAbout(app);
+
+actions.innerHTML=
+screen==="home"
+?
+`<button class="btn"
+style="flex:1"
+onclick="newForm()">
+＋ Новая оценка
+</button>`
+:
+`<button class="btn secondary"
+style="flex:1"
+onclick="go('home')">
+← Назад
+</button>`;
+
+}
+
+function renderHome(app){
+
+app.innerHTML=`
+
+<div class="logo">
+СТОИТ ЛИ?
+</div>
+
+<div class="nav">
+
+<button class="active">
+Места
+</button>
+
+<button onclick="go('stats')">
+Статистика
+</button>
+
+<button onclick="go('about')">
+О приложении
+</button>
+
+</div>
+
+<div class="card">
+
+<h1>
+Наши оценки
+</h1>
+
+<div class="muted">
+Сравниваем места по критериям
+и решаем, стоит ли ехать.
+</div>
+
+</div>
+
+${
+data.length
+
+?
+
+data
+.slice()
+.reverse()
+.map((x,i)=>{
+
+let real=data.length-1-i;
+let r=calc(x);
+let v=verdict(r);
+
+return `
+
+<div class="card list-item">
+
+<div
+onclick="openItem(${real})"
+style="flex:1;cursor:pointer"
+>
+
+<b>
+${esc(x.name)}
+</b>
+
+<div class="muted">
+${esc(x.type)}
+·
+${esc(x.date||"")}
+</div>
+
+</div>
+
+<div style="text-align:right">
+
+<b>
+${r==null?"—":r.toFixed(1)}
+</b>
+
+<div class="pill">
+${v[0]}
+</div>
+
+</div>
+
+</div>
+
+`;
+
+}).join("")
+
+:
+
+`
+
+<div class="card empty">
+
+Пока нет оценок.
+<br>
+Добавьте первое место.
+
+</div>
+
+`
+
+}
+
+`;
+
+}
+
+function newForm(){
+
+draft={
+date:new Date().toLocaleDateString("ru-RU"),
+name:"",
+type:"Страна",
+ratings:{}
+};
+
+screen="form";
+
+render();
+
+}
+
+function openItem(i){
+
+draft=
+JSON.parse(
+JSON.stringify(data[i])
+);
+
+draft._index=i;
+
+screen="form";
+
+render();
+
+}
+
+function renderForm(app){
+
+let rows="";
+
+(CATS[draft.type]||[]).forEach(([name])=>{
+
+rows+=`
+
+<div class="rating-row">
+
+<b>
+${esc(name)}
+</b>
+
+${
+PEOPLE.map(p=>{
+
+let val=
+draft.ratings[p]?.[name]??"";
+
+return `
+
+<div class="person">
+
+<div class="person-title">
+${p}
+</div>
+
+<div class="scores">
+
+${
+[1,2,3,4,5,6,7,8,9,10]
+.map(n=>`
+
+<button
+class="${val===n?"active":""}"
+onclick="rate('${js(p)}','${js(name)}',${n})"
+>
+${n}
+</button>
+
+`).join("")
+
+}
+
+</div>
+
+</div>
+
+`;
+
+}).join("")
+
+}
+
+</div>
+
+`;
+
+});
+
+let result=calc(draft);
+let v=verdict(result);
+
+app.innerHTML=`
+
+<div class="logo">
+СТОИТ ЛИ?
+</div>
+
+<div class="card">
+
+<label>
+Место / объект
+</label>
+
+<input
+id="name"
+value="${esc(draft.name)}"
+placeholder="Например: Батуми"
+>
+
+<label>
+Категория
+</label>
+
+<select
+id="type"
+onchange="changeType(this.value)"
+>
+
+${
+Object.keys(CATS)
+.map(x=>`
+
+<option
+${x===draft.type?"selected":""}
+>
+${x}
+</option>
+
+`).join("")
+}
+
+</select>
+
+<label>
+Дата
+</label>
+
+<input
+id="date"
+value="${esc(draft.date||"")}"
+>
+
+</div>
+
+<div class="card">
+
+<h2>
+Оценки
+</h2>
+
+${rows}
+
+</div>
+
+<div class="card result">
+
+<div class="muted">
+Итоговый рейтинг
+</div>
+
+<div class="big">
+${result==null?"—":result.toFixed(1)}
+</div>
+
+<b>
+${v[0]}
+</b>
+
+<div class="muted">
+${v[1]}
+</div>
+
+</div>
+
+<div class="card">
+
+<button
+class="btn"
+style="width:100%"
+onclick="saveDraft()"
+>
+Сохранить
+</button>
+
+${
+draft._index!=null
+?
+
+`
+<button
+class="btn danger"
+style="width:100%;margin-top:8px"
+onclick="removeDraft()"
+>
+Удалить
+</button>
+`
+
+:""
+
+}
+
+</div>
+
+`;
+
+}
+
+function rate(p,c,n){
+
+if(!draft.ratings[p])
+draft.ratings[p]={};
+
+draft.ratings[p][c]=n;
+
+render();
+
+}
+
+function changeType(t){
+
+draft.type=t;
+
+draft.ratings={};
+
+render();
+
+}
+
+function saveDraft(){
+
+draft.name=
+document.getElementById("name")
+.value
+.trim();
+
+draft.date=
+document.getElementById("date")
+.value
+.trim();
+
+if(!draft.name){
+
+alert("Введите название места");
+
+return;
+
+}
+
+let index=data.findIndex(
+x=>x.id===draft.id
+);
+
+if(index>=0){
+
+data[index]=draft;
+
+}
+
+else{
+
+draft.id=Date.now();
+
+data.push(draft);
+
+}
+
+delete draft._index;
+
+save();
+
+go("home");
+
+}
+
+function removeDraft(){
+
+let idx=data.findIndex(
+x=>x.id===draft.id
+);
+
+if(idx>=0){
+
+data.splice(idx,1);
+
+save();
+
+}
+
+go("home");
+
+}
+
+function renderStats(app){
+
+let vals=
+data
+.map(calc)
+.filter(Number.isFinite);
+
+let overall=
+vals.length
+?
+vals.reduce((a,b)=>a+b,0)/vals.length
+:
+0;
+
+let by={};
+
+data.forEach(x=>{
+
+by[x.type]??=[];
+
+let v=calc(x);
+
+if(v!=null)
+by[x.type].push(v);
+
+});
+
+app.innerHTML=`
+
+<div class="logo">
+СТОИТ ЛИ?
+</div>
+
+<div class="nav">
+
+<button onclick="go('home')">
+Места
+</button>
+
+<button class="active">
+Статистика
+</button>
+
+<button onclick="go('about')">
+О приложении
+</button>
+
+</div>
+
+<div class="card result">
+
+<div class="muted">
+Средний рейтинг всех оценок
+</div>
+
+<div class="big">
+${vals.length?overall.toFixed(1):"—"}
+</div>
+
+<div class="muted">
+${data.length} записей
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>
+По категориям
+</h2>
+
+${
+Object.keys(CATS)
+.map(k=>{
+
+let a=by[k]||[];
+
+let v=a.length
+?
+a.reduce((x,y)=>x+y,0)/a.length
+:
+null;
+
+return `
+
+<div class="list-item">
+
+<span>
+${k}
+</span>
+
+<b>
+${v==null?"—":v.toFixed(1)}
+</b>
+
+</div>
+
+`;
+
+})
+.join("")
+}
+
+</div>
+
+`;
+
+}
+
+function renderAbout(app){
+
+app.innerHTML=`
+
+<div class="logo">
+СТОИТ ЛИ?
+</div>
+
+<div class="nav">
+
+<button onclick="go('home')">
+Места
+</button>
+
+<button onclick="go('stats')">
+Статистика
+</button>
+
+<button class="active">
+О приложении
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>
+Зачем это приложение?
+</h2>
+
+<p>
+Семейный рейтинг мест:
+каждый ставит свои оценки,
+а приложение считает общий результат.
+</p>
+
+<p class="muted">
+Данные хранятся на этом устройстве.
+</p>
+
+</div>
+
+`;
+
+}
+
+function esc(s){
+
+return String(s??"")
+.replace(
+/[&<>"']/g,
+m=>({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#39;"
+}[m])
+);
+
+}
+
+function js(s){
+
+return String(s??"")
+.replace(/\\/g,"\\\\")
+.replace(/'/g,"\\'");
+
+}
+
+window.addEventListener(
+"popstate",
+()=>{
+screen=
+history.state?.screen||"home";
+render();
+}
+);
+
+history.replaceState(
+{screen:"home"},
+"",
+"#home"
+);
+
+render();
+
+</script>
+
+</body>
+</html>
