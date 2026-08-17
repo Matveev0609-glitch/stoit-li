@@ -47,6 +47,25 @@ const CATS={
 "Место / локация":[["Фотогеничность",15],["Красота и уют",15],["Природа и зелень",10],["Животный мир — суша",8],["Морская жизнь",8],["Чистота",10],["Доступность",10],["Насекомые — комфорт",8],["Семейность",10],["Вернёмся?",6]]
 };
 let data=JSON.parse(localStorage.getItem(KEY)||"[]"), screen="home", draft=null;
+
+let historyBusy=false;
+
+function go(nextScreen){
+  screen=nextScreen;
+  render();
+}
+
+window.addEventListener("popstate",function(){
+  if(historyBusy)return;
+  const next=history.state?.screen || "home";
+  historyBusy=true;
+  screen=next;
+  render();
+  historyBusy=false;
+});
+
+const originalRenderState={screen:"home"};
+history.replaceState({screen:"home"},"","#home");
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function save(){localStorage.setItem(KEY,JSON.stringify(data))}
 function avg(o){let a=Object.values(o||{}).filter(v=>typeof v==="number");return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
@@ -54,7 +73,9 @@ function calc(item){
  let total=0, w=0; item.criteria.forEach((c,i)=>{let a=avg(item.scores[i]); if(a!=null){total+=a*c[1];w+=c[1]}}); return w?total/w:null
 }
 function verdict(x){if(x==null)return ["",""]; if(x>=9)return["🔥 ОБЯЗАТЕЛЬНО","good"]; if(x>=8)return["🟢 СТОИТ","good"]; if(x>=7)return["🟡 МОЖНО","warn"]; return["🔴 НЕ СТОИТ","bad"]}
-function render(){
+function render(){if(!historyBusy){
+  history.pushState({screen:screen},"","#"+screen);
+}
  const app=document.getElementById("app"), actions=document.getElementById("actions");
  actions.innerHTML=screen==="form"?`<div class="actions-inner"><button class="btn secondary" onclick="go('home')">Отмена</button><button class="btn" onclick="finish()">Сохранить</button></div>`:"";
  if(screen==="home"){
