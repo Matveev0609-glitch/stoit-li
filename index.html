@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
 <title>СТОИТ ЛИ?</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f7fb;--card:rgba(255,255,255,.94);--text:#172033;--muted:#6b7280;--line:#dce3ec;--accent:#0b1220;--blue:#2f80ed}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -19,7 +18,7 @@ h2{margin:0 0 16px;font-size:26px}.form-grid{display:grid;grid-template-columns:
 .people{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.person{border:1px solid var(--line);border-radius:18px;padding:14px}.person h3{margin:0 0 10px}.score-row{display:grid;grid-template-columns:1fr 70px;align-items:center;gap:8px;margin:10px 0}.score-row input{width:70px;padding:10px;border:1px solid var(--line);border-radius:12px}
 .criteria{display:grid;grid-template-columns:1fr;gap:10px}.criterion{border:1px solid var(--line);border-radius:17px;padding:13px;background:#fff}.criterion-title{font-weight:800;margin-bottom:9px}.ratings{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ratings label{font-size:13px;color:var(--muted)}.ratings input{width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:11px}
 .places{display:grid;gap:12px}.place{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}.place-head{display:flex;justify-content:space-between;gap:10px;align-items:start}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef5ff;color:#2672d4;font-weight:700;font-size:13px}.overall{font-size:28px;font-weight:850}.meta{color:var(--muted);margin-top:6px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chip{padding:6px 9px;border-radius:999px;background:#f0f3f7;font-size:12px}
-#map{height:420px;border-radius:18px;overflow:hidden}.empty{padding:30px;text-align:center;color:var(--muted)}
+#map{height:420px;border-radius:18px;overflow:hidden;background:#e9eef5}#mapFrame{width:100%;height:100%;border:0;display:block;border-radius:18px}.empty{padding:30px;text-align:center;color:var(--muted)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:9999}.modal.open{display:flex}.modal-box{width:min(900px,100%);max-height:92vh;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 @media(max-width:700px){.hero{min-height:270px}.hero h1{font-size:31px}.container{margin-top:-30px}.form-grid,.people{grid-template-columns:1fr}.ratings{grid-template-columns:repeat(3,1fr)}.field.full{grid-column:auto}}
 </style>
@@ -43,7 +42,7 @@ h2{margin:0 0 16px;font-size:26px}.form-grid{display:grid;grid-template-columns:
 </div>
 
 <section id="mapView" class="card">
-<h2>Карта</h2><div id="map"></div>
+<h2>Карта</h2><div id="map"><iframe id="mapFrame" title="Карта на русском" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
 </section>
 
 <section id="listView" class="card">
@@ -78,7 +77,6 @@ h2{margin:0 0 16px;font-size:26px}.form-grid{display:grid;grid-template-columns:
 </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const KEY='stoitli_places_v2';
 const criteria=[
@@ -95,7 +93,7 @@ const criteria=[
 ['water_animals','🐠 Животные в воде']
 ];
 const people=['Антон','Жена','Сын'];
-let map,markers=[];
+
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
 function saveAll(a){localStorage.setItem(KEY,JSON.stringify(a));}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -125,14 +123,28 @@ function render(){
  }).join(''):'<div class="empty">Пока нет мест. Нажмите «Добавить».</div>';
  renderMap(all);
 }
-function renderMap(all){
- if(!map){map=L.map('map').setView([20,80],3);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map)}
- markers.forEach(m=>m.remove());markers=[];
- all.filter(p=>p.lat&&p.lng).forEach(p=>{const m=L.marker([p.lat,p.lng]).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${p.status==='been'?'🟢 Были':'🔵 Хотим'}<br>Рейтинг: ${avgPlace(p)?avgPlace(p).toFixed(1):'—'}`);markers.push(m)});
- if(markers.length)map.fitBounds(L.featureGroup(markers).getBounds().pad(.25));
- setTimeout(()=>map.invalidateSize(),100);
+function mapZoom(points){
+ if(!points.length)return 2;
+ if(points.length===1)return 11;
+ const lats=points.map(p=>p.lat), lngs=points.map(p=>p.lng);
+ const span=Math.max(Math.max(...lats)-Math.min(...lats),Math.max(...lngs)-Math.min(...lngs));
+ if(span>80)return 2;if(span>40)return 3;if(span>20)return 4;if(span>10)return 5;if(span>5)return 6;if(span>2)return 7;if(span>1)return 8;if(span>.5)return 9;if(span>.2)return 10;return 11;
 }
-function showView(id){document.getElementById('mapView').style.display=id==='mapView'?'block':'none';document.getElementById('listView').style.display=id==='listView'?'block':'none';if(id==='mapView')setTimeout(()=>map&&map.invalidateSize(),100)}
+function renderMap(all){
+ const frame=document.getElementById('mapFrame');
+ const points=all.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)));
+ let ll='80,20',z=2,pt='';
+ if(points.length){
+  const lat=points.reduce((a,p)=>a+Number(p.lat),0)/points.length;
+  const lng=points.reduce((a,p)=>a+Number(p.lng),0)/points.length;
+  ll=`${lng.toFixed(6)},${lat.toFixed(6)}`;z=mapZoom(points);
+  pt=points.map(p=>`${Number(p.lng).toFixed(6)},${Number(p.lat).toFixed(6)},pm2rdm`).join('~');
+ }
+ const params=new URLSearchParams({ll,z:String(z),lang:'ru_RU'});
+ if(pt)params.set('pt',pt);
+ frame.src=`https://yandex.ru/map-widget/v1/?${params.toString()}`;
+}
+function showView(id){document.getElementById('mapView').style.display=id==='mapView'?'block':'none';document.getElementById('listView').style.display=id==='listView'?'block':'none';if(id==='mapView')renderMap(load())}
 renderCriteria();render();showView('mapView');
 </script>
 </body>
